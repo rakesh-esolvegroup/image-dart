@@ -1,42 +1,111 @@
 import './styles.css';
+import { WorkerPool } from './lib/workerPool';
+import { h } from './ui/dom';
+import { createConvertTab } from './ui/convertTab';
+import { preventWindowDrop } from './ui/dropzone';
 
-const tabs = [
-  {
-    id: 'convert',
-    label: 'Convert to WebP',
-    note: 'JPEG/PNG → WebP conversion is coming in Phase 2.',
-  },
-  {
-    id: 'compress',
-    label: 'Compress / Resize',
-    note: 'Compress-to-target-size (e.g. 2 MB → 160 KB) is coming in Phase 3.',
-  },
-] as const;
+const pool = new WorkerPool();
 
-type TabId = (typeof tabs)[number]['id'];
-
-function render(root: HTMLElement, active: TabId): void {
-  const current = tabs.find((t) => t.id === active) ?? tabs[0];
-  root.innerHTML = `
-    <main class="app">
-      <h1>Image Tool</h1>
-      <p class="tagline">Convert and compress images right in your browser.</p>
-      <div class="tabs" role="tablist">
-        ${tabs
-          .map(
-            (t) =>
-              `<button role="tab" data-tab="${t.id}" aria-selected="${t.id === active}">${t.label}</button>`,
-          )
-          .join('')}
-      </div>
-      <section class="panel" role="tabpanel">${current.note}</section>
-      <p class="privacy">🔒 Your images never leave your computer. All processing happens locally.</p>
-    </main>
-  `;
-  root.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((btn) => {
-    btn.addEventListener('click', () => render(root, btn.dataset.tab as TabId));
-  });
+interface Tab {
+  id: string;
+  label: string;
+  panel: HTMLElement;
 }
 
-const root = document.querySelector<HTMLElement>('#app');
-if (root) render(root, 'convert');
+function createCompressPlaceholder(): HTMLElement {
+  return h(
+    'section',
+    { class: 'tool tool-placeholder' },
+    h('p', { class: 'placeholder-title' }, 'Compress to a target size'),
+    h(
+      'p',
+      { class: 'hint' },
+      'Pick a size like 160 KB and the image is shrunk to fit. Coming in the next update.',
+    ),
+  );
+}
+
+function createTabs(tabs: Tab[]): HTMLElement {
+  const list = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Tools' });
+  const panels = h('div', { class: 'panels' });
+
+  const buttons = tabs.map((tab) =>
+    h(
+      'button',
+      {
+        type: 'button',
+        role: 'tab',
+        id: `tab-${tab.id}`,
+        'aria-controls': `panel-${tab.id}`,
+        class: 'tab',
+      },
+      tab.label,
+    ),
+  );
+
+  tabs.forEach((tab, i) => {
+    const panel = h(
+      'div',
+      { role: 'tabpanel', id: `panel-${tab.id}`, 'aria-labelledby': `tab-${tab.id}` },
+      tab.panel,
+    );
+    panels.append(panel);
+    buttons[i].addEventListener('click', () => select(i));
+    // Arrow keys move between tabs (WAI-ARIA tabs pattern)
+    buttons[i].addEventListener('keydown', (e) => {
+      const move = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!move) return;
+      e.preventDefault();
+      const next = (i + move + tabs.length) % tabs.length;
+      select(next);
+      buttons[next].focus();
+    });
+  });
+
+  // Panels stay in the DOM when hidden, so work in one tab survives switching tabs
+  function select(index: number): void {
+    buttons.forEach((b, i) => {
+      const active = i === index;
+      b.setAttribute('aria-selected', String(active));
+      b.tabIndex = active ? 0 : -1;
+      (panels.children[i] as HTMLElement).hidden = !active;
+    });
+  }
+
+  list.append(...buttons);
+  select(0);
+  return h('div', { class: 'tabbed' }, list, panels);
+}
+
+function createApp(): HTMLElement {
+  return h(
+    'div',
+    { class: 'app' },
+    h(
+      'header',
+      { class: 'masthead' },
+      h('h1', { class: 'wordmark' }, 'Image Tool'),
+      h(
+        'p',
+        { class: 'tagline' },
+        'Convert and shrink images on your own computer. Nothing is uploaded.',
+      ),
+    ),
+    h(
+      'main',
+      {},
+      createTabs([
+        { id: 'convert', label: 'Convert to WebP', panel: createConvertTab(pool) },
+        { id: 'compress', label: 'Compress / Resize', panel: createCompressPlaceholder() },
+      ]),
+    ),
+    h(
+      'footer',
+      { class: 'footnote' },
+      'Images are processed in this browser tab and never leave your device.',
+    ),
+  );
+}
+
+preventWindowDrop();
+document.querySelector('#app')?.replaceWith(createApp());

@@ -18,8 +18,12 @@ export function toWebpFilename(name: string): string {
   return `${base || 'image'}.webp`;
 }
 
-/** Percentage saved, e.g. (2000, 500) → 75. Negative if the file grew. */
+/**
+ * Percentage saved, e.g. (2000, 500) → 75. Negative if the file grew.
+ * Never reports 100% while the output still has bytes (56 KB → 102 B is 99%, not 100%).
+ */
 export function percentSaved(before: number, after: number): number {
   if (before <= 0) return 0;
-  return Math.round((1 - after / before) * 100);
+  const saved = Math.round((1 - after / before) * 100);
+  return after > 0 ? Math.min(saved, 99) : saved;
 }

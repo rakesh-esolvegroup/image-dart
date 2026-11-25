@@ -38,6 +38,10 @@ describe('percentSaved', () => {
     expect(percentSaved(1000, 1200)).toBe(-20);
     expect(percentSaved(0, 10)).toBe(0);
   });
+  it('never claims 100% while the output still has bytes', () => {
+    expect(percentSaved(56_500, 102)).toBe(99);
+    expect(percentSaved(100, 0)).toBe(100);
+  });
 });
 
 describe('fitWithin', () => {
