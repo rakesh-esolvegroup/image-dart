@@ -28,7 +28,7 @@ export interface FileListHandlers {
 
 /**
  * The list of added images. Each row shows the "shrink bar": the full track is the
- * original size and the filled part is the WebP size. In the Compress tab a tick marks
+ * original size and the filled part is the new file's size. In the Compress tab a tick marks
  * the target size, so the goal and the result show together.
  * Rows are keyed by job id and updated in place, so thumbnails don't flicker.
  */
@@ -108,7 +108,7 @@ export function createFileList(handlers: FileListHandlers) {
             type: 'button',
             class: 'btn btn-small btn-ghost',
             onclick: () => handlers.onCompare(job),
-            'aria-label': `Compare original and WebP for ${job.file.name}`,
+            'aria-label': `Compare original and new image for ${job.file.name}`,
           },
           'Compare',
         ),
@@ -116,14 +116,17 @@ export function createFileList(handlers: FileListHandlers) {
           'button',
           {
             type: 'button',
-            class: 'btn btn-small',
+            class: 'btn btn-small btn-download-one',
             onclick: () => handlers.onDownload(job),
-            'aria-label': `Download ${job.outputName}`,
           },
           'Download',
         ),
         removeButton(job),
       );
+      // The name can change without a re-run (file-name pattern), so update it every time
+      const download = row.actions.querySelector('.btn-download-one');
+      download?.setAttribute('aria-label', `Download ${job.outputName}`);
+      download?.setAttribute('title', job.outputName);
     } else if (job.status === 'error') {
       if (row.thumb.src !== job.inputUrl) row.thumb.src = job.inputUrl;
       row.fill.style.setProperty('--ratio', '0');

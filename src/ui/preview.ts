@@ -3,7 +3,7 @@ import { h } from './dom';
 import type { Job } from './jobs';
 
 /**
- * Before/after comparison in a modal dialog. The WebP is laid over the original and
+ * Before/after comparison in a modal dialog. The new image is laid over the original and
  * revealed up to a draggable divider. "Fit" shows the whole image; "100%" shows real
  * pixels (scroll to pan), which is where compression artefacts become visible.
  */
@@ -13,7 +13,8 @@ export function openCompare(job: Job): void {
 
   const titleId = `compare-title-${job.id}`;
   const before = h('img', { class: 'compare-img', src: job.inputUrl, alt: 'Original' });
-  const after = h('img', { class: 'compare-img', src: job.outputUrl, alt: 'WebP' });
+  const label = r.format.toUpperCase();
+  const after = h('img', { class: 'compare-img', src: job.outputUrl, alt: label });
   const afterLayer = h('div', { class: 'compare-after' }, after);
   const handle = h('div', { class: 'compare-handle', 'aria-hidden': 'true' });
   const canvas = h(
@@ -27,11 +28,15 @@ export function openCompare(job: Job): void {
       { class: 'compare-tag compare-tag-before' },
       `Original · ${formatBytes(r.inputBytes)}`,
     ),
-    h('span', { class: 'compare-tag compare-tag-after' }, `WebP · ${formatBytes(r.outputBytes)}`),
+    h(
+      'span',
+      { class: 'compare-tag compare-tag-after' },
+      `${label} · ${formatBytes(r.outputBytes)}`,
+    ),
   );
   const stage = h('div', { class: 'compare-stage', 'data-zoom': 'fit' }, canvas);
 
-  // Both images are drawn at the original's size, so a resized WebP is scaled up
+  // Both images are drawn at the original's size, so a resized output is scaled up
   // to match. That shows exactly what was lost.
   canvas.style.setProperty('--w', String(r.originalWidth));
   canvas.style.setProperty('--h', String(r.originalHeight));
@@ -43,7 +48,7 @@ export function openCompare(job: Job): void {
     step: 1,
     value: 50,
     class: 'compare-range',
-    'aria-label': 'Divider position: left shows the original, right shows the WebP',
+    'aria-label': `Divider position: left shows the original, right shows the ${label}`,
   });
 
   function setPosition(percent: number): void {
@@ -118,7 +123,7 @@ export function openCompare(job: Job): void {
       closeButton,
     ),
     stage,
-    h('div', { class: 'compare-foot' }, h('span', {}, 'Original'), slider, h('span', {}, 'WebP')),
+    h('div', { class: 'compare-foot' }, h('span', {}, 'Original'), slider, h('span', {}, label)),
   );
 
   closeButton.addEventListener('click', () => dialog.close());

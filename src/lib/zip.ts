@@ -18,10 +18,10 @@ export function uniqueNames(names: string[]): string[] {
 }
 
 /** "webp-images-2026-11-25-1830.zip" */
-export function zipFilename(date = new Date()): string {
+export function zipFilename(date = new Date(), prefix = 'webp-images'): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   const stamp = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}`;
-  return `webp-images-${stamp}.zip`;
+  return `${prefix}-${stamp}.zip`;
 }
 
 export interface ZipEntry {

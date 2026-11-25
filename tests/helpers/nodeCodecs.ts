@@ -5,9 +5,11 @@ import { init as initPngDecode } from '@jsquash/png/decode';
 import encodePng, { init as initPngEncode } from '@jsquash/png/encode';
 import { init as initJpegDecode } from '@jsquash/jpeg/decode';
 import encodeJpeg, { init as initJpegEncode } from '@jsquash/jpeg/encode';
-import { init as initWebpEncode } from '@jsquash/webp/encode';
+import encodeWebp, { init as initWebpEncode } from '@jsquash/webp/encode';
 import decodeWebp, { init as initWebpDecode } from '@jsquash/webp/decode';
 import { initResize } from '@jsquash/resize';
+import { init as initAvifEncode } from '@jsquash/avif/encode';
+import decodeAvif, { init as initAvifDecode } from '@jsquash/avif/decode';
 
 async function compile(path: string): Promise<WebAssembly.Module> {
   const file = fileURLToPath(new URL(`../../node_modules/@jsquash/${path}`, import.meta.url));
@@ -37,9 +39,11 @@ export function initNodeCodecs(): Promise<void> {
       (initWebpEncode as unknown as ModuleInit)(await compile(webpEnc)),
       (initWebpDecode as unknown as ModuleInit)(await compile('webp/codec/dec/webp_dec.wasm')),
       initResize(await compile('resize/lib/resize/pkg/squoosh_resize_bg.wasm')),
+      (initAvifEncode as unknown as ModuleInit)(await compile('avif/codec/enc/avif_enc.wasm')),
+      (initAvifDecode as unknown as ModuleInit)(await compile('avif/codec/dec/avif_dec.wasm')),
     ]);
   })();
   return ready;
 }
 
-export { encodePng, encodeJpeg, decodeWebp };
+export { encodePng, encodeJpeg, encodeWebp, decodeWebp, decodeAvif };

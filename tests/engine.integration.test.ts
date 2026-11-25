@@ -5,8 +5,21 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { codecs } from '../src/worker/codecs';
 import { compressImage, convertImage } from '../src/worker/engine';
-import { decodeWebp, encodeJpeg, encodePng, initNodeCodecs } from './helpers/nodeCodecs';
-import { isWebp, makePhotoLike, makeTransparent, withExifOrientation } from './helpers/fixtures';
+import {
+  decodeAvif,
+  decodeWebp,
+  encodeJpeg,
+  encodePng,
+  encodeWebp,
+  initNodeCodecs,
+} from './helpers/nodeCodecs';
+import {
+  isWebp,
+  makePhotoLike,
+  makeScreenshotLike,
+  makeTransparent,
+  withExifOrientation,
+} from './helpers/fixtures';
 
 const KB = 1024;
 let photoPng: ArrayBuffer; // ~2 MB photo-like PNG
@@ -129,5 +142,96 @@ describe('errors', () => {
     await expect(
       convertImage(photoPng, { quality: 0, lossless: false }, codecs),
     ).rejects.toMatchObject({ code: 'INVALID_OPTIONS' });
+  });
+});
+
+const isAvif = (buffer: ArrayBuffer) =>
+  String.fromCharCode(...new Uint8Array(buffer, 4, 8)) === 'ftypavif';
+
+describe('AVIF and WebP (Phase 5)', () => {
+  it('converts PNG to AVIF, smaller than WebP at a comparable quality', async () => {
+    const avif = await convertImage(
+      photoPng,
+      { quality: 55, lossless: false, format: 'avif' },
+      codecs,
+    );
+    const webp = await convertImage(
+      photoPng,
+      { quality: 80, lossless: false, format: 'webp' },
+      codecs,
+    );
+    expect(isAvif(avif.buffer)).toBe(true);
+    expect(avif).toMatchObject({
+      format: 'avif',
+      mimeType: 'image/avif',
+      width: 1000,
+      height: 750,
+    });
+    const decoded = await decodeAvif(avif.buffer);
+    expect({ w: decoded?.width, h: decoded?.height }).toEqual({ w: 1000, h: 750 });
+    console.info(
+      `AVIF q55: ${(avif.outputBytes / KB).toFixed(0)} KB in ${avif.durationMs} ms vs WebP q80: ${(webp.outputBytes / KB).toFixed(0)} KB`,
+    );
+  });
+
+  it('compresses to a target size as AVIF', async () => {
+    const r = await compressImage(photoPng, { targetBytes: 60 * KB, format: 'avif' }, codecs);
+    expect(isAvif(r.buffer)).toBe(true);
+    expect(r.outputBytes).toBeLessThanOrEqual(60 * KB);
+    console.info(
+      `AVIF → 60 KB: ${(r.outputBytes / KB).toFixed(0)} KB, q${r.quality}, ${r.width}×${r.height}, ${r.attempts} encodes, ${r.durationMs} ms`,
+    );
+  });
+
+  it('accepts WebP and AVIF as input', async () => {
+    const webpInput = await encodeWebp(makePhotoLike(320, 240, 4), { quality: 90 });
+    const fromWebp = await convertImage(webpInput, { quality: 70, lossless: false }, codecs);
+    expect(fromWebp).toMatchObject({ inputFormat: 'webp', width: 320, height: 240 });
+
+    const avifInput = (
+      await convertImage(webpInput, { quality: 60, lossless: false, format: 'avif' }, codecs)
+    ).buffer;
+    const fromAvif = await compressImage(avifInput, { targetBytes: 8 * KB }, codecs);
+    expect(fromAvif).toMatchObject({ inputFormat: 'avif', format: 'webp' });
+    expect(fromAvif.outputBytes).toBeLessThanOrEqual(8 * KB);
+  });
+
+  it('AVIF lossless keeps every pixel', async () => {
+    const original = makeTransparent(64, 32);
+    const r = await convertImage(
+      await encodePng(original),
+      { quality: 80, lossless: true, format: 'avif' },
+      codecs,
+    );
+    const out = await decodeAvif(r.buffer);
+    let mismatches = 0;
+    for (let i = 0; i < original.data.length; i += 4) {
+      if (original.data[i + 3] === 0) continue; // colour under fully transparent pixels may differ
+      for (let c = 0; c < 4; c++) if (out!.data[i + c] !== original.data[i + c]) mismatches++;
+    }
+    expect(mismatches).toBe(0);
+  });
+});
+
+describe('Phase 4 test files', () => {
+  it('screenshot with text: lossless WebP is exact and smaller than the PNG', async () => {
+    const shot = makeScreenshotLike(1280, 800);
+    const png = await encodePng(shot);
+    const r = await convertImage(png, { quality: 80, lossless: true }, codecs);
+    const out = await decodeWebp(r.buffer);
+    expect(Buffer.from(out.data).equals(Buffer.from(shot.data))).toBe(true);
+    expect(r.outputBytes).toBeLessThan(png.byteLength);
+    console.info(
+      `screenshot: PNG ${(png.byteLength / KB).toFixed(0)} KB → lossless WebP ${(r.outputBytes / KB).toFixed(0)} KB`,
+    );
+  });
+
+  it('tiny 16×16 image converts and compresses', async () => {
+    const png = await encodePng(makePhotoLike(16, 16, 4));
+    const c = await convertImage(png, { quality: 80, lossless: false }, codecs);
+    expect({ w: c.width, h: c.height }).toEqual({ w: 16, h: 16 });
+    const k = await compressImage(png, { targetBytes: 5 * KB }, codecs);
+    expect(k.quality).toBe(95); // fits immediately at top quality
+    expect(k.attempts).toBe(1);
   });
 });

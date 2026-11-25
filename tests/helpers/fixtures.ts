@@ -156,3 +156,42 @@ export function isWebp(buffer: ArrayBuffer): boolean {
   const ascii = (from: number, to: number) => String.fromCharCode(...b.subarray(from, to));
   return ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP';
 }
+
+/**
+ * A UI-screenshot-like image: flat panels, borders, and rows of small high-contrast
+ * "glyphs" (text strokes). Lossless WebP should beat PNG on this, and lossy would blur it.
+ */
+export function makeScreenshotLike(width: number, height: number, seed = 7): ImageData {
+  const rand = prng(seed);
+  const data = new Uint8ClampedArray(width * height * 4);
+  const fill = (x0: number, y0: number, w: number, h: number, [r, g, b]: number[]) => {
+    for (let y = Math.max(0, y0); y < Math.min(height, y0 + h); y++) {
+      for (let x = Math.max(0, x0); x < Math.min(width, x0 + w); x++) {
+        const i = (y * width + x) * 4;
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+        data[i + 3] = 255;
+      }
+    }
+  };
+  fill(0, 0, width, height, [246, 247, 249]); // page
+  fill(0, 0, width, 48, [28, 78, 156]); // header bar
+  fill(0, 48, 220, height - 48, [233, 237, 241]); // sidebar
+  for (let row = 0; row < Math.floor((height - 80) / 22); row++) {
+    const y = 70 + row * 22;
+    const x0 = row % 6 === 0 ? 20 : 240;
+    let x = x0;
+    // a line of "words" made of 1–2 px strokes
+    while (x < width - 40 && x < x0 + 300 + rand() * 500) {
+      const glyphs = 2 + Math.floor(rand() * 7);
+      for (let gIdx = 0; gIdx < glyphs; gIdx++) {
+        fill(x, y, 1 + Math.floor(rand() * 2), 9 + Math.floor(rand() * 3), [32, 38, 46]);
+        fill(x, y + Math.floor(rand() * 8), 5, 1, [32, 38, 46]);
+        x += 7;
+      }
+      x += 6;
+    }
+  }
+  return new ImageData(data, width, height);
+}

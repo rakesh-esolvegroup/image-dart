@@ -1,22 +1,29 @@
+import { outputFilename } from '../lib/filename';
+import type { PrefsStore } from '../lib/prefs';
 import type { WorkerPool } from '../lib/workerPool';
 import type { ConvertOptions, EngineProgress } from '../worker/engine';
 import { createBatchTool } from './batchTool';
 import { describeConvert } from './describe';
 import { h } from './dom';
+import { createOutputFields } from './outputFields';
 
 function progressText(p: EngineProgress): string {
-  if (p.stage === 'decode') return 'Reading image…';
-  return 'Converting to WebP…';
+  return p.stage === 'decode' ? 'Reading image…' : 'Converting…';
 }
 
-/** Feature 1: convert PNG/JPEG images to WebP at a chosen quality, one or many at a time. */
-export function createConvertTab(pool: WorkerPool): HTMLElement {
-  const options: ConvertOptions = { quality: 80, lossless: false };
+const QUALITY_HINT = {
+  webp: '80 suits most photos. Lower makes smaller files with softer detail.',
+  avif: 'AVIF looks good at lower numbers: 50–60 suits most photos.',
+};
+
+/** Feature 1: convert images to WebP or AVIF at a chosen quality, one or many at a time. */
+export function createConvertTab(pool: WorkerPool, prefs: PrefsStore) {
+  const saved = prefs.get().convert;
 
   const qualityValue = h(
     'output',
     { class: 'quality-value', for: 'convert-quality' },
-    options.quality,
+    saved.quality,
   );
   const quality = h('input', {
     id: 'convert-quality',
@@ -24,54 +31,78 @@ export function createConvertTab(pool: WorkerPool): HTMLElement {
     min: 1,
     max: 100,
     step: 1,
-    value: options.quality,
+    value: saved.quality,
     'aria-describedby': 'convert-quality-hint',
   });
   quality.addEventListener('input', () => {
-    options.quality = Number(quality.value);
     qualityValue.textContent = quality.value;
-    tool.refresh();
+    prefs.set('convert', { quality: Number(quality.value) });
   });
 
-  const lossless = h('input', { id: 'convert-lossless', type: 'checkbox' });
-  lossless.addEventListener('change', () => {
-    options.lossless = lossless.checked;
-    quality.disabled = lossless.checked;
-    tool.refresh();
+  const lossless = h('input', {
+    id: 'convert-lossless',
+    type: 'checkbox',
+    checked: saved.lossless,
   });
+  quality.disabled = saved.lossless;
+  lossless.addEventListener('change', () => {
+    quality.disabled = lossless.checked;
+    prefs.set('convert', { lossless: lossless.checked });
+  });
+
+  const qualityHint = h('p', { id: 'convert-quality-hint', class: 'hint' });
 
   const settings = h(
     'div',
-    { class: 'settings' },
+    { class: 'settings-stack' },
     h(
       'div',
-      { class: 'field field-quality' },
-      h('label', { for: 'convert-quality', class: 'label' }, 'Quality'),
-      h('div', { class: 'range-row' }, quality, qualityValue),
+      { class: 'settings' },
       h(
-        'p',
-        { id: 'convert-quality-hint', class: 'hint' },
-        '80 suits most photos. Lower makes smaller files with softer detail.',
+        'div',
+        { class: 'field field-quality' },
+        h('label', { for: 'convert-quality', class: 'label' }, 'Quality'),
+        h('div', { class: 'range-row' }, quality, qualityValue),
+        qualityHint,
+      ),
+      h(
+        'div',
+        { class: 'field field-lossless' },
+        h('label', { class: 'check' }, lossless, h('span', {}, 'Lossless')),
+        h('p', { class: 'hint' }, 'Exact pixels. Best for screenshots, logos and text.'),
       ),
     ),
-    h(
-      'div',
-      { class: 'field field-lossless' },
-      h('label', { class: 'check' }, lossless, h('span', {}, 'Lossless')),
-      h('p', { class: 'hint' }, 'Exact pixels. Best for screenshots, logos and text.'),
-    ),
+    createOutputFields(prefs, 'convert'),
   );
 
+  const options = (): ConvertOptions => ({
+    ...prefs.get().convert,
+    format: prefs.get().output.format,
+  });
+
   const tool = createBatchTool<ConvertOptions>({
-    label: 'Convert to WebP',
+    label: 'Convert',
     verb: { doing: 'Converting', done: 'converted' },
     settings,
-    getOptions: () => ({ ...options }),
-    settingsKey: (o) => (o.lossless ? 'lossless' : `q${o.quality}`),
+    getOptions: options,
+    settingsKey: (o) => `${o.format}-${o.lossless ? 'lossless' : `q${o.quality}`}`,
     run: (file, o, onProgress) => pool.convert(file, o, onProgress),
     describe: (job) => describeConvert(job.result!),
     progressText,
+    nameFor: (file, r) => outputFilename(prefs.get().output.pattern, file.name, r),
   });
 
-  return tool.element;
+  function syncHint(): void {
+    qualityHint.textContent = QUALITY_HINT[prefs.get().output.format];
+  }
+  prefs.subscribe((_, changed) => {
+    if (changed === 'output') {
+      syncHint();
+      tool.rename();
+    }
+    tool.refresh();
+  });
+  syncHint();
+
+  return { element: tool.element, addFiles: tool.addFiles };
 }

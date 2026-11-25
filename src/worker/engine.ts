@@ -2,16 +2,20 @@ import { ImageToolError } from '../lib/errors';
 import { fitWithin } from '../lib/dimensions';
 import { inspectInput, type InputFormat } from './decode';
 import { compressToTarget } from './targetSize';
-import type { Codecs } from './codecs';
+import { OUTPUT_MIME, type Codecs, type OutputFormat } from './codecs';
 
 export interface ConvertOptions {
   /** 1–100. Ignored when lossless is true. */
   quality: number;
   lossless: boolean;
+  /** Default 'webp'. */
+  format?: OutputFormat;
 }
 
 export interface CompressOptions {
   targetBytes: number;
+  /** Default 'webp'. */
+  format?: OutputFormat;
   maxWidth?: number;
   maxHeight?: number;
 }
@@ -23,7 +27,8 @@ export type EngineProgress =
 
 export interface ImageResult {
   buffer: ArrayBuffer;
-  mimeType: 'image/webp';
+  format: OutputFormat;
+  mimeType: 'image/webp' | 'image/avif';
   inputFormat: InputFormat;
   inputBytes: number;
   outputBytes: number;
@@ -56,11 +61,11 @@ async function encodeOrFail<T>(fn: () => Promise<T>): Promise<T> {
     return await fn();
   } catch (err) {
     if (err instanceof ImageToolError) throw err;
-    throw new ImageToolError('ENCODE_FAILED', 'WebP encoding failed.');
+    throw new ImageToolError('ENCODE_FAILED', 'Encoding failed. Try another quality or format.');
   }
 }
 
-/** Feature 1: convert a PNG/JPEG to WebP at a fixed quality (or lossless). */
+/** Feature 1: convert an image to WebP or AVIF at a fixed quality (or lossless). */
 export async function convertImage(
   input: ArrayBuffer,
   options: ConvertOptions,
@@ -73,15 +78,19 @@ export async function convertImage(
     throw new ImageToolError('INVALID_OPTIONS', 'Quality must be between 1 and 100.');
   }
 
+  const output = options.format ?? 'webp';
   const { format, image } = await decode(input, codecs, onProgress);
   onProgress?.({ stage: 'encode', attempt: 1, quality: options.lossless ? null : quality });
   const buffer = await encodeOrFail(() =>
-    options.lossless ? codecs.encodeLossless(image) : codecs.encodeLossy(image, quality),
+    options.lossless
+      ? codecs.encodeLossless(image, output)
+      : codecs.encodeLossy(image, quality, output),
   );
 
   return {
     buffer,
-    mimeType: 'image/webp',
+    format: output,
+    mimeType: OUTPUT_MIME[output],
     inputFormat: format,
     inputBytes: input.byteLength,
     outputBytes: buffer.byteLength,
@@ -105,6 +114,7 @@ export async function compressImage(
   onProgress?: ProgressFn,
 ): Promise<ImageResult> {
   const started = performance.now();
+  const output = options.format ?? 'webp';
   const { format, image: decoded } = await decode(input, codecs, onProgress);
 
   let image = decoded;
@@ -119,7 +129,7 @@ export async function compressImage(
       image,
       { targetBytes: options.targetBytes },
       {
-        encode: (img, q) => codecs.encodeLossy(img, q),
+        encode: (img, q) => codecs.encodeLossy(img, q, output, 'fast'),
         resize: (img, w, h) => {
           onProgress?.({ stage: 'resize', width: w, height: h });
           return codecs.resize(img, w, h);
@@ -132,7 +142,8 @@ export async function compressImage(
 
   return {
     buffer: result.buffer,
-    mimeType: 'image/webp',
+    format: output,
+    mimeType: OUTPUT_MIME[output],
     inputFormat: format,
     inputBytes: input.byteLength,
     outputBytes: result.buffer.byteLength,

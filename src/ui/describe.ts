@@ -9,7 +9,7 @@ export interface ResultNote {
 
 const size = (r: ResultInfo) => `${r.width}×${r.height}`;
 
-/** Convert tab: dimensions and quality, or advice when the WebP came out larger. */
+/** Convert tab: dimensions and quality, or advice when the new file came out larger. */
 export function describeConvert(r: ResultInfo): ResultNote {
   if (r.outputBytes > r.inputBytes) {
     return {
@@ -35,7 +35,7 @@ export function describeCompress(
   const target = used.targetBytes ? `${Math.round(used.targetBytes / 1024)} KB` : 'the target';
   if (r.outputBytes > r.inputBytes) {
     return {
-      text: `The original is already under ${target}. This WebP is larger, so keep the original.`,
+      text: `The original is already under ${target}. The new file is larger, so keep the original.`,
       tone: 'warn',
     };
   }

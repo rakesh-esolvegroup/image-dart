@@ -7,7 +7,7 @@ import type { ResultNote } from './describe';
 import { h, replace } from './dom';
 import { createDropzone } from './dropzone';
 import { createFileList } from './fileList';
-import { JobStore, planDownload, type Job } from './jobs';
+import { JobStore, planDownload, type Job, type ResultInfo } from './jobs';
 import { openCompare } from './preview';
 
 /** Errors that changing the settings won't fix. */
@@ -28,11 +28,13 @@ export interface BatchToolConfig<O> {
   used?(options: O): Job['used'];
   describe(job: Job): ResultNote;
   progressText(p: EngineProgress): string;
+  /** Download name for a finished image (from the file-name pattern). */
+  nameFor(file: File, result: ResultInfo): string;
 }
 
 /**
  * Shared engine for both tabs: add one or many images, process them in the background,
- * then download one image as .webp, or several as a .zip.
+ * then download one image as a file, or several as a .zip.
  */
 export function createBatchTool<O>(config: BatchToolConfig<O>) {
   const store = new JobStore();
@@ -63,10 +65,11 @@ export function createBatchTool<O>(config: BatchToolConfig<O>) {
       });
       if (!current()) return;
       const { buffer, ...info } = result;
-      const blob = new Blob([buffer], { type: 'image/webp' });
+      const blob = new Blob([buffer], { type: info.mimeType });
       store.update(job.id, {
         status: 'done',
         result: info,
+        outputName: config.nameFor(job.file, info),
         blob,
         outputUrl: URL.createObjectURL(blob),
         progress: undefined,
@@ -74,6 +77,15 @@ export function createBatchTool<O>(config: BatchToolConfig<O>) {
     } catch (err) {
       if (!current()) return;
       store.update(job.id, { status: 'error', error: toErrorPayload(err), progress: undefined });
+    }
+  }
+
+  /** Re-applies the file-name pattern to finished images (no re-encoding needed). */
+  function rename(): void {
+    for (const job of store.jobs) {
+      if (job.status === 'done' && job.result) {
+        store.update(job.id, { outputName: config.nameFor(job.file, job.result) });
+      }
     }
   }
 
@@ -118,7 +130,9 @@ export function createBatchTool<O>(config: BatchToolConfig<O>) {
       refresh();
       try {
         const zip = await buildZip(plan.jobs.map((j) => ({ name: j.outputName, blob: j.blob! })));
-        downloadBlob(zip, zipFilename());
+        const formats = new Set(plan.jobs.map((j) => j.result?.format));
+        const prefix = formats.size === 1 ? `${[...formats][0]}-images` : 'images';
+        downloadBlob(zip, zipFilename(new Date(), prefix));
       } finally {
         zipping = false;
         refresh();
@@ -198,5 +212,5 @@ export function createBatchTool<O>(config: BatchToolConfig<O>) {
     fileList.element,
   );
 
-  return { element, refresh };
+  return { element, refresh, rename, addFiles };
 }

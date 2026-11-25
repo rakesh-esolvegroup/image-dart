@@ -1,6 +1,7 @@
 import { h } from './dom';
 
-const ACCEPT = '.png,.jpg,.jpeg,image/png,image/jpeg';
+const PASTE_KEY = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘V' : 'Ctrl+V';
+const ACCEPT = '.png,.jpg,.jpeg,.webp,.avif,image/png,image/jpeg,image/webp,image/avif';
 
 /**
  * Drag-and-drop area plus a file picker. Accepts several files at once.
@@ -31,8 +32,12 @@ export function createDropzone(onFiles: (files: File[]) => void): HTMLElement {
   const zone = h(
     'div',
     { class: 'dropzone' },
-    h('p', { class: 'dropzone-title' }, 'Drop PNG or JPEG images here'),
-    h('p', { class: 'dropzone-hint' }, 'One image or many. Each one starts as soon as it’s added.'),
+    h('p', { class: 'dropzone-title' }, 'Drop images here'),
+    h(
+      'p',
+      { class: 'dropzone-hint' },
+      `PNG, JPEG, WebP or AVIF. One or many, or paste with ${PASTE_KEY}.`,
+    ),
     button,
     input,
   );

@@ -1,0 +1,11 @@
+{
+  "name": "Image Tool",
+  "short_name": "Image Tool",
+  "description": "Convert and shrink images to WebP or AVIF on your own computer. Nothing is uploaded.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#e9edf1",
+  "theme_color": "#1c4e9c",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

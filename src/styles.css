@@ -613,6 +613,57 @@ body {
   color: var(--danger);
 }
 
+/* ---- Output row (format + file names), shared by both tabs --------------- */
+
+.settings-stack {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.settings-stack > .settings {
+  margin-bottom: 0;
+}
+
+.settings-output {
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+
+.chip-format {
+  min-width: 4.5rem;
+  font-family: var(--font-label);
+  font-stretch: 87.5%;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.text-input {
+  width: 100%;
+  max-width: 22rem;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  color: var(--ink);
+  font: 0.9375rem var(--font-mono);
+}
+
+.hint code {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--track);
+  color: var(--ink);
+  font: 0.75rem var(--font-mono);
+}
+
+.hint code.example {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* ---- Compare dialog ------------------------------------------------------ */
 
 .compare {

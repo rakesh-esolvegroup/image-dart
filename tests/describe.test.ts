@@ -6,6 +6,7 @@ const KB = 1024;
 
 function result(patch: Partial<ResultInfo>): ResultInfo {
   return {
+    format: 'webp',
     mimeType: 'image/webp',
     inputFormat: 'png',
     inputBytes: 2048 * KB,
@@ -71,7 +72,7 @@ describe('describeCompress', () => {
   it('advises keeping the original when it was already small enough', () => {
     const r = result({ inputBytes: 40 * KB, outputBytes: 55 * KB, quality: 95 });
     expect(describeCompress(r, { targetBytes: 160 * KB })).toEqual({
-      text: 'The original is already under 160 KB. This WebP is larger, so keep the original.',
+      text: 'The original is already under 160 KB. The new file is larger, so keep the original.',
       tone: 'warn',
     });
   });
