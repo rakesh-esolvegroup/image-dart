@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Engine test (dev only)</title>
+    <style>
+      body {
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+        max-width: 960px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+      fieldset {
+        margin-bottom: 12px;
+      }
+      label {
+        margin-right: 16px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 16px;
+      }
+      th,
+      td {
+        border: 1px solid #8884;
+        padding: 6px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+      td img {
+        max-width: 160px;
+        max-height: 120px;
+      }
+      .err {
+        color: #d33;
+      }
+      #log {
+        font:
+          12px ui-monospace,
+          monospace;
+        white-space: pre-wrap;
+        max-height: 200px;
+        overflow: auto;
+        background: #8881;
+        padding: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Image engine test page</h1>
+    <p>Dev-only harness for Phase 1. It isn't part of the production build.</p>
+
+    <fieldset>
+      <legend>Files</legend>
+      <input id="files" type="file" accept=".png,.jpg,.jpeg,image/png,image/jpeg" multiple />
+    </fieldset>
+
+    <fieldset>
+      <legend>Convert to WebP</legend>
+      <label>Quality <input id="quality" type="number" min="1" max="100" value="80" /></label>
+      <label><input id="lossless" type="checkbox" /> Lossless</label>
+      <button id="convert">Convert</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Compress to target</legend>
+      <label>Target KB <input id="target" type="number" min="1" value="160" /></label>
+      <label>Max width <input id="maxWidth" type="number" min="0" placeholder="none" /></label>
+      <button id="compress">Compress</button>
+    </fieldset>
+
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Result</th>
+          <th>Output</th>
+        </tr>
+      </thead>
+      <tbody id="results"></tbody>
+    </table>
+
+    <h3>Progress log</h3>
+    <div id="log"></div>
+
+    <script type="module" src="./engine-test.ts"></script>
+  </body>
+</html>

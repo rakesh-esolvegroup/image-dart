@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -5,11 +6,18 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@jsquash/png', '@jsquash/jpeg', '@jsquash/webp', '@jsquash/resize'],
   },
-  // The codec Web Worker (Phase 1) uses ES module imports.
+  // The codec Web Worker uses ES module imports.
   worker: {
     format: 'es',
   },
   build: {
     target: 'es2022',
+  },
+  test: {
+    environment: 'node',
+    include: ['tests/**/*.test.ts'],
+    setupFiles: ['tests/setup.ts'],
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
   },
 });

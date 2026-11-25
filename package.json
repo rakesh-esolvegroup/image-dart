@@ -5,18 +5,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:engine": "vite --open /dev/engine-test.html",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc",
+    "typecheck": "tsc && tsc -p tests",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run typecheck && npm run lint && npm run format:check",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name=image-tool"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=image-tool",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.4",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.14.0",
@@ -24,6 +28,7 @@
     "typescript": "~6.0.0",
     "typescript-eslint": "^8.74.0",
     "vite": "^8.3.6",
+    "vitest": "^5.1.2",
     "wrangler": "^4.168.0"
   },
   "dependencies": {
