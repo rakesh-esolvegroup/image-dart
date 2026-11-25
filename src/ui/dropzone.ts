@@ -32,7 +32,7 @@ export function createDropzone(onFiles: (files: File[]) => void): HTMLElement {
     'div',
     { class: 'dropzone' },
     h('p', { class: 'dropzone-title' }, 'Drop PNG or JPEG images here'),
-    h('p', { class: 'dropzone-hint' }, 'One image or many. Each converts as soon as it’s added.'),
+    h('p', { class: 'dropzone-hint' }, 'One image or many. Each one starts as soon as it’s added.'),
     button,
     input,
   );

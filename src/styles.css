@@ -403,8 +403,14 @@ body {
 }
 
 .file-row[data-status='error'] .file-meta,
-.file-row[data-grew='true'] .file-meta {
+.file-meta[data-tone='warn'] {
   color: var(--danger);
+}
+
+/* e.g. "Resized to 486×365 to fit 25 KB": worth noticing, not a problem */
+.file-meta[data-tone='note'] {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 /* Nothing to measure for a file that never converted */
@@ -438,6 +444,22 @@ body {
 
 .file-row[data-grew='true'] .shrink-fill {
   background: var(--danger);
+}
+
+/* Compress tab: a tick at the target size. The fill should end at or before it. */
+.shrink-target {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: calc(var(--pos, 1) * 100%);
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+  opacity: 0.7;
+}
+
+.shrink:has(.shrink-target:not([hidden])) .shrink-bar {
+  overflow: visible;
 }
 
 .file-row[data-status='processing'] .shrink-bar,
@@ -491,24 +513,253 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  min-width: 118px;
+  min-width: 196px;
 }
 
-/* ---- Placeholder tab ----------------------------------------------------- */
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent);
+}
 
-.tool-placeholder {
-  padding: 40px 24px;
-  border: 1px dashed var(--line);
+/* ---- Compress settings --------------------------------------------------- */
+
+.target-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.number-field {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+}
+
+.number-field:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.number-input {
+  width: 6.5ch;
+  min-height: 38px;
+  padding: 0 4px 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 600 1.125rem var(--font-mono);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.number-input:focus-visible {
+  outline: none; /* the field shows focus */
+}
+
+.number-input[aria-invalid='true'] {
+  color: var(--danger);
+}
+
+.unit {
+  padding-right: 12px;
+  color: var(--muted);
+  font: 600 0.875rem var(--font-mono);
+}
+
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  appearance: none;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 500 0.8125rem var(--font-mono);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.select {
+  min-height: 38px;
+  min-width: 12rem;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.hint-error {
+  color: var(--danger);
+}
+
+/* ---- Compare dialog ------------------------------------------------------ */
+
+.compare {
+  width: min(1100px, 100vw - 32px);
+  max-height: calc(100vh - 32px);
+  padding: 0; /* so a click on the dialog element itself means the backdrop */
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  text-align: center;
+  background: var(--surface);
+  color: var(--ink);
 }
 
-.placeholder-title {
+.compare[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.compare::backdrop {
+  background: rgb(10 16 24 / 0.72);
+}
+
+.compare-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.compare-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.compare-title h2 {
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-label);
   font-stretch: 87.5%;
   font-size: 1.25rem;
-  font-weight: 600;
+}
+
+.compare-details {
+  margin: 2px 0 0;
+  font: 0.8125rem var(--font-mono);
+  color: var(--muted);
+}
+
+.compare-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  /* Checkerboard, so transparency is visible */
+  background: repeating-conic-gradient(var(--track) 0 25%, var(--surface) 0 50%) 0 0 / 20px 20px;
+}
+
+.compare-canvas {
+  position: relative;
+  margin: 0 auto;
+  aspect-ratio: var(--w) / var(--h);
+  touch-action: none;
+  cursor: ew-resize;
+  user-select: none;
+}
+
+.compare-stage[data-zoom='fit'] .compare-canvas {
+  width: min(100%, (100vh - 220px) * var(--w) / var(--h));
+}
+
+.compare-stage[data-zoom='actual'] .compare-canvas {
+  width: calc(var(--w) * 1px);
+}
+
+.compare-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.compare-after {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 0 0 var(--pos, 50%));
+}
+
+.compare-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--pos, 50%);
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
+}
+
+.compare-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  transform: translate(-50%, -50%);
+}
+
+.compare-tag {
+  position: absolute;
+  top: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgb(10 16 24 / 0.72);
+  color: #fff;
+  font: 600 0.75rem var(--font-mono);
+  pointer-events: none;
+}
+
+.compare-tag-before {
+  left: 10px;
+}
+
+.compare-tag-after {
+  right: 10px;
+}
+
+.compare-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--line);
+  font: 600 0.8125rem var(--font-label);
+  color: var(--muted);
+}
+
+.compare-range {
+  flex: 1;
+  accent-color: var(--accent);
 }
 
 /* ---- Small screens ------------------------------------------------------- */

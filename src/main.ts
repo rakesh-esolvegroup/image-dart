@@ -1,28 +1,17 @@
 import './styles.css';
 import { WorkerPool } from './lib/workerPool';
 import { h } from './ui/dom';
+import { createCompressTab } from './ui/compressTab';
 import { createConvertTab } from './ui/convertTab';
 import { preventWindowDrop } from './ui/dropzone';
 
+// One pool shared by both tabs, so the two never compete for more cores than intended
 const pool = new WorkerPool();
 
 interface Tab {
   id: string;
   label: string;
   panel: HTMLElement;
-}
-
-function createCompressPlaceholder(): HTMLElement {
-  return h(
-    'section',
-    { class: 'tool tool-placeholder' },
-    h('p', { class: 'placeholder-title' }, 'Compress to a target size'),
-    h(
-      'p',
-      { class: 'hint' },
-      'Pick a size like 160 KB and the image is shrunk to fit. Coming in the next update.',
-    ),
-  );
 }
 
 function createTabs(tabs: Tab[]): HTMLElement {
@@ -96,7 +85,7 @@ function createApp(): HTMLElement {
       {},
       createTabs([
         { id: 'convert', label: 'Convert to WebP', panel: createConvertTab(pool) },
-        { id: 'compress', label: 'Compress / Resize', panel: createCompressPlaceholder() },
+        { id: 'compress', label: 'Compress / Resize', panel: createCompressTab(pool) },
       ]),
     ),
     h(

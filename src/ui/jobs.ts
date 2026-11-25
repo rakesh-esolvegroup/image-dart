@@ -18,6 +18,8 @@ export interface Job {
   progress?: string;
   /** Settings this job was (or is being) processed with, e.g. "q80" or "lossless". */
   settingsKey: string;
+  /** Compress-tab settings used for this run, for the result description and target marker. */
+  used?: { targetBytes?: number; maxWidth?: number };
   /** Increases each time the job is (re)started, so stale results can be ignored. */
   run: number;
   result?: ResultInfo;

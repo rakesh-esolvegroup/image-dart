@@ -1,4 +1,5 @@
 import { formatBytes, percentSaved } from '../lib/format';
+import type { ResultNote } from './describe';
 import { h, replace } from './dom';
 import type { Job } from './jobs';
 
@@ -8,6 +9,7 @@ interface Row {
   meta: HTMLElement;
   bar: HTMLElement;
   fill: HTMLElement;
+  marker: HTMLElement;
   before: HTMLElement;
   after: HTMLElement;
   saving: HTMLElement;
@@ -17,13 +19,17 @@ interface Row {
 }
 
 export interface FileListHandlers {
+  /** Text under the file name once the image is done. */
+  describe(job: Job): ResultNote;
+  onCompare(job: Job): void;
   onDownload(job: Job): void;
   onRemove(job: Job): void;
 }
 
 /**
  * The list of added images. Each row shows the "shrink bar": the full track is the
- * original size and the filled part is the WebP size.
+ * original size and the filled part is the WebP size. In the Compress tab a tick marks
+ * the target size, so the goal and the result show together.
  * Rows are keyed by job id and updated in place, so thumbnails don't flicker.
  */
 export function createFileList(handlers: FileListHandlers) {
@@ -37,7 +43,8 @@ export function createFileList(handlers: FileListHandlers) {
     thumb.addEventListener('load', () => thumb.classList.remove('is-broken'));
     const meta = h('span', { class: 'file-meta' });
     const fill = h('span', { class: 'shrink-fill' });
-    const bar = h('span', { class: 'shrink-bar', 'aria-hidden': 'true' }, fill);
+    const marker = h('span', { class: 'shrink-target' });
+    const bar = h('span', { class: 'shrink-bar', 'aria-hidden': 'true' }, fill, marker);
     const before = h('span', { class: 'size size-before' });
     const after = h('span', { class: 'size size-after' });
     const saving = h('span', { class: 'saving' });
@@ -56,13 +63,25 @@ export function createFileList(handlers: FileListHandlers) {
       saving,
       actions,
     );
-    return { root, thumb, meta, bar, fill, before, after, saving, actions };
+    return { root, thumb, meta, bar, fill, marker, before, after, saving, actions };
   }
 
   function updateRow(row: Row, job: Job): void {
     row.root.dataset.status = job.status;
     row.root.dataset.grew = 'false';
     row.before.textContent = formatBytes(job.file.size);
+    row.meta.dataset.tone = 'normal';
+
+    // Target marker (Compress tab): only meaningful when the target is below the original size
+    const target = job.used?.targetBytes;
+    const showMarker = !!target && target < job.file.size && job.status !== 'error';
+    row.marker.hidden = !showMarker;
+    if (target && showMarker) {
+      row.marker.style.setProperty('--pos', String(target / job.file.size));
+      row.bar.title = `Target: ${formatBytes(target)}`;
+    } else {
+      row.bar.removeAttribute('title');
+    }
 
     if (job.status === 'done' && job.result) {
       const r = job.result;
@@ -76,15 +95,23 @@ export function createFileList(handlers: FileListHandlers) {
         'aria-label',
         saved >= 0 ? `${saved} percent smaller` : `${-saved} percent larger`,
       );
-      row.meta.textContent =
-        ratio > 1
-          ? // Say what to do, not just that it happened
-            `${r.width}×${r.height} · larger than the original${r.lossless ? '. Turn off Lossless for photos.' : '. Try a lower quality.'}`
-          : `${r.width}×${r.height} · ${r.lossless ? 'lossless' : `quality ${r.quality}`}`;
+      const note = handlers.describe(job);
+      row.meta.textContent = note.text;
+      row.meta.dataset.tone = note.tone;
       if (job.outputUrl && row.thumb.src !== job.outputUrl) row.thumb.src = job.outputUrl;
       setActions(
         row,
         job,
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn btn-small btn-ghost',
+            onclick: () => handlers.onCompare(job),
+            'aria-label': `Compare original and WebP for ${job.file.name}`,
+          },
+          'Compare',
+        ),
         h(
           'button',
           {
