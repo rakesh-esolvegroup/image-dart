@@ -93,6 +93,10 @@ npx wrangler login        # once
 npm run deploy            # builds, then uploads dist/ to the "image-dart" Pages project
 ```
 
+Live at **https://image-dart.pages.dev**.
+
+The `image-dart` Pages project already exists. To set it up on a different account, create it once first with `npx wrangler pages project create image-dart --production-branch=main --force`. Without `--force`, Wrangler 4.168+ tries to redirect Pages to Cloudflare Workers and fails.
+
 If your Cloudflare login has more than one account, Wrangler asks which one. To skip the question, set `CLOUDFLARE_ACCOUNT_ID` first.
 
 **Option 2: Git.** In the Cloudflare dashboard: **Workers & Pages → Create → Pages → Connect to Git**. Preset **Vite**, build command `npm run build`, output `dist`. Every push then redeploys.
