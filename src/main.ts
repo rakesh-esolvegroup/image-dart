@@ -6,6 +6,7 @@ import { createCompressTab } from './ui/compressTab';
 import { createConvertTab } from './ui/convertTab';
 import { h } from './ui/dom';
 import { preventWindowDrop } from './ui/dropzone';
+import { icon, type IconName } from './ui/icons';
 
 // One pool shared by both tabs, so the two never compete for more cores than intended
 const pool = new WorkerPool();
@@ -70,7 +71,8 @@ function createTabs(tabs: Tab[]) {
   list.append(...buttons);
   select(0);
   return {
-    element: h('div', { class: 'tabbed' }, list, panels),
+    list,
+    panels,
     /** Sends files to whichever tab is showing (used by paste). */
     addToActive: (files: File[]) => tabs[active].addFiles(files),
   };
@@ -102,20 +104,52 @@ function createApp(): HTMLElement {
     { class: 'app' },
     h(
       'header',
-      { class: 'masthead' },
-      h('h1', { class: 'wordmark' }, 'Image Dart'),
+      { class: 'topbar' },
+      h('div', { class: 'brand' }, icon('plane', 'brand-mark'), h('span', {}, 'Image Dart')),
+      h('span', { class: 'topbar-divider', 'aria-hidden': 'true' }),
+      tabs.list,
       h(
         'p',
-        { class: 'tagline' },
-        'Convert and shrink images on your own computer. Nothing is uploaded.',
+        {
+          class: 'device-note',
+          title: 'Images are processed in this browser tab and never uploaded.',
+        },
+        icon('lock'),
+        h('span', { class: 'device-note-text' }, 'Runs on your device'),
       ),
     ),
-    h('main', {}, tabs.element),
+    h('main', { class: 'page' }, tabs.panels, howItWorks()),
     h(
       'footer',
       { class: 'footnote' },
       'Images are processed in this browser tab and never leave your device. ',
       'After the first visit it also works offline.',
+    ),
+  );
+}
+
+function howItWorks(): HTMLElement {
+  const steps: [IconName, string][] = [
+    ['photos', 'Add images'],
+    ['sliders', 'Adjust settings'],
+    ['save', 'Save files'],
+  ];
+  return h(
+    'section',
+    { class: 'how', 'aria-labelledby': 'how-title' },
+    h('h2', { class: 'how-title', id: 'how-title' }, 'How it works'),
+    h(
+      'ol',
+      { class: 'how-steps' },
+      ...steps.map(([name, text], i) =>
+        h(
+          'li',
+          { class: 'how-step' },
+          icon(name, 'how-icon'),
+          h('span', {}, text),
+          i < steps.length - 1 && icon('arrow', 'how-arrow'),
+        ),
+      ),
     ),
   );
 }

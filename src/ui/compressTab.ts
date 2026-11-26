@@ -80,37 +80,35 @@ export function createCompressTab(pool: WorkerPool, prefs: PrefsStore) {
     prefs.set('compress', { maxWidth: widthSelect.value ? Number(widthSelect.value) : undefined });
   });
 
+  const output = createOutputFields(prefs, 'compress');
   const settings = h(
     'div',
-    { class: 'settings-stack' },
+    { class: 'settings-body' },
+    output.format,
     h(
       'div',
-      { class: 'settings' },
+      { class: 'field field-divided' },
+      h('label', { for: 'compress-target', class: 'label' }, 'Target size'),
       h(
         'div',
-        { class: 'field' },
-        h('label', { for: 'compress-target', class: 'label' }, 'Target size'),
-        h(
-          'div',
-          { class: 'target-row' },
-          h('span', { class: 'number-field' }, targetInput, h('span', { class: 'unit' }, 'KB')),
-          h('span', { class: 'chips', role: 'group', 'aria-label': 'Common sizes' }, ...presets),
-        ),
-        targetHint,
+        { class: 'target-row' },
+        h('span', { class: 'number-field' }, targetInput, h('span', { class: 'unit' }, 'KB')),
+        h('span', { class: 'chips', role: 'group', 'aria-label': 'Common sizes' }, ...presets),
       ),
+      targetHint,
+    ),
+    h(
+      'div',
+      { class: 'field field-divided' },
+      h('label', { for: 'compress-width', class: 'label' }, 'Max width'),
+      widthSelect,
       h(
-        'div',
-        { class: 'field' },
-        h('label', { for: 'compress-width', class: 'label' }, 'Max width'),
-        widthSelect,
-        h(
-          'p',
-          { id: 'compress-width-hint', class: 'hint' },
-          'Wider images are scaled down first. Height follows.',
-        ),
+        'p',
+        { id: 'compress-width-hint', class: 'hint' },
+        'Wider images are scaled down first. Height follows.',
       ),
     ),
-    createOutputFields(prefs, 'compress'),
+    output.fileName,
   );
 
   type Options = CompressOptions & { targetKb: number };
@@ -120,7 +118,10 @@ export function createCompressTab(pool: WorkerPool, prefs: PrefsStore) {
   };
 
   const tool = createBatchTool<Options>({
+    id: 'compress',
     label: 'Compress to a target size',
+    title: 'Compress images',
+    intro: 'Shrink images to a file size you choose, like 2 MB down to 160 KB.',
     verb: { doing: 'Compressing', done: 'compressed' },
     settings,
     getOptions: options,

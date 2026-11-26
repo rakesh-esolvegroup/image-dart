@@ -7,6 +7,7 @@ import type { ResultNote } from './describe';
 import { h, replace } from './dom';
 import { createDropzone } from './dropzone';
 import { createFileList } from './fileList';
+import { icon } from './icons';
 import { JobStore, planDownload, type Job, type ResultInfo } from './jobs';
 import { openCompare } from './preview';
 
@@ -14,8 +15,13 @@ import { openCompare } from './preview';
 const UNFIXABLE = new Set<ImageErrorCode>(['UNSUPPORTED_TYPE', 'TOO_LARGE', 'DECODE_FAILED']);
 
 export interface BatchToolConfig<O> {
+  /** Short id used for element ids, e.g. 'convert'. */
+  id: string;
   /** Accessible name of the tool section. */
   label: string;
+  /** Page heading and the line under it. */
+  title: string;
+  intro: string;
   /** Words for the status line, e.g. { doing: 'Converting', done: 'converted' }. */
   verb: { doing: string; done: string };
   /** The tool's own settings panel. Call `refresh()` on the returned tool when they change. */
@@ -203,11 +209,32 @@ export function createBatchTool<O>(config: BatchToolConfig<O>) {
   store.subscribe(refresh);
   refresh();
 
+  const settingsTitleId = `${config.id}-settings-title`;
   const element = h(
     'section',
     { class: 'tool', 'aria-label': config.label },
-    config.settings,
-    createDropzone(addFiles),
+    h(
+      'div',
+      { class: 'hero' },
+      h('h1', { class: 'hero-title' }, config.title),
+      h('p', { class: 'hero-intro' }, config.intro),
+    ),
+    h(
+      'div',
+      { class: 'workspace' },
+      createDropzone(addFiles),
+      h(
+        'aside',
+        { class: 'settings-card', 'aria-labelledby': settingsTitleId },
+        h(
+          'div',
+          { class: 'settings-card-head' },
+          icon('sliders', 'settings-card-icon'),
+          h('h2', { id: settingsTitleId }, 'Output settings'),
+        ),
+        config.settings,
+      ),
+    ),
     summary,
     fileList.element,
   );

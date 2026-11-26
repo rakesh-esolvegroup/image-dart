@@ -1,6 +1,8 @@
+import dogUrl from '../assets/dart-dog.webp';
 import { h } from './dom';
+import { icon } from './icons';
 
-const PASTE_KEY = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘V' : 'Ctrl+V';
+const PASTE_MODIFIER = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl';
 const ACCEPT = '.png,.jpg,.jpeg,.webp,.avif,image/png,image/jpeg,image/webp,image/avif';
 
 /**
@@ -25,27 +27,55 @@ export function createDropzone(onFiles: (files: File[]) => void): HTMLElement {
   const pick = () => input.click();
   const button = h(
     'button',
-    { type: 'button', class: 'btn btn-primary', onclick: pick },
+    { type: 'button', class: 'btn btn-primary btn-pill btn-choose', onclick: pick },
+    icon('plus'),
     'Choose images',
+  );
+
+  // Dart, the mascot, carrying a photo. Decorative: the text below says what to do.
+  const art = h(
+    'div',
+    { class: 'dropzone-art', 'aria-hidden': 'true' },
+    h('span', { class: 'dropzone-dots' }),
+    h(
+      'span',
+      { class: 'dog-float' },
+      h('img', {
+        class: 'dog',
+        src: dogUrl,
+        alt: '',
+        width: 560,
+        height: 521,
+        draggable: 'false',
+      }),
+    ),
+    h('span', { class: 'dog-shadow' }),
   );
 
   const zone = h(
     'div',
     { class: 'dropzone' },
+    art,
     h('p', { class: 'dropzone-title' }, 'Drop images here'),
+    h('p', { class: 'dropzone-formats' }, 'PNG, JPEG, WebP or AVIF. One or many.'),
+    button,
     h(
       'p',
-      { class: 'dropzone-hint' },
-      `PNG, JPEG, WebP or AVIF. One or many, or paste with ${PASTE_KEY}.`,
+      { class: 'dropzone-paste' },
+      'or paste with ',
+      h('kbd', {}, PASTE_MODIFIER),
+      ' + ',
+      h('kbd', {}, 'V'),
     ),
-    button,
     input,
   );
 
-  // Clicking empty space in the zone opens the picker too (but not a second time via the button)
+  // Clicking anywhere in the zone opens the picker, except the button (it already does) and
+  // the hidden input itself (its own click bubbles up here)
   zone.addEventListener('click', (e) => {
-    if (e.target === zone || (e.target as Element).closest('.dropzone-title, .dropzone-hint'))
-      pick();
+    const target = e.target as Element;
+    if (target === input || target.closest('button')) return;
+    pick();
   });
 
   let depth = 0; // dragenter/leave fire for every child element

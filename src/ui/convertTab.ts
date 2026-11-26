@@ -12,7 +12,7 @@ function progressText(p: EngineProgress): string {
 }
 
 const QUALITY_HINT = {
-  webp: '80 suits most photos. Lower makes smaller files with softer detail.',
+  webp: 'Lower quality makes smaller files. 80 suits most photos.',
   avif: 'AVIF looks good at lower numbers: 50–60 suits most photos.',
 };
 
@@ -28,21 +28,30 @@ export function createConvertTab(pool: WorkerPool, prefs: PrefsStore) {
   const quality = h('input', {
     id: 'convert-quality',
     type: 'range',
+    class: 'slider',
     min: 1,
     max: 100,
     step: 1,
     value: saved.quality,
     'aria-describedby': 'convert-quality-hint',
   });
+  // The dark part of the track follows the thumb
+  const syncFill = () =>
+    quality.style.setProperty('--fill', `${((Number(quality.value) - 1) / 99) * 100}%`);
   quality.addEventListener('input', () => {
     qualityValue.textContent = quality.value;
+    syncFill();
     prefs.set('convert', { quality: Number(quality.value) });
   });
+  syncFill();
 
   const lossless = h('input', {
     id: 'convert-lossless',
     type: 'checkbox',
+    role: 'switch',
+    class: 'switch',
     checked: saved.lossless,
+    'aria-describedby': 'convert-lossless-hint',
   });
   quality.disabled = saved.lossless;
   lossless.addEventListener('change', () => {
@@ -51,28 +60,40 @@ export function createConvertTab(pool: WorkerPool, prefs: PrefsStore) {
   });
 
   const qualityHint = h('p', { id: 'convert-quality-hint', class: 'hint' });
+  const output = createOutputFields(prefs, 'convert');
 
   const settings = h(
     'div',
-    { class: 'settings-stack' },
+    { class: 'settings-body' },
+    output.format,
     h(
       'div',
-      { class: 'settings' },
+      { class: 'field field-quality' },
       h(
         'div',
-        { class: 'field field-quality' },
+        { class: 'field-head' },
         h('label', { for: 'convert-quality', class: 'label' }, 'Quality'),
-        h('div', { class: 'range-row' }, quality, qualityValue),
-        qualityHint,
+        qualityValue,
+      ),
+      quality,
+      qualityHint,
+    ),
+    h(
+      'div',
+      { class: 'field field-divided' },
+      h(
+        'div',
+        { class: 'field-head' },
+        h('label', { for: 'convert-lossless', class: 'label' }, 'Lossless'),
+        lossless,
       ),
       h(
-        'div',
-        { class: 'field field-lossless' },
-        h('label', { class: 'check' }, lossless, h('span', {}, 'Lossless')),
-        h('p', { class: 'hint' }, 'Exact pixels. Best for screenshots, logos and text.'),
+        'p',
+        { id: 'convert-lossless-hint', class: 'hint' },
+        'Exact pixels. Best for screenshots, logos and text.',
       ),
     ),
-    createOutputFields(prefs, 'convert'),
+    output.fileName,
   );
 
   const options = (): ConvertOptions => ({
@@ -81,7 +102,10 @@ export function createConvertTab(pool: WorkerPool, prefs: PrefsStore) {
   });
 
   const tool = createBatchTool<ConvertOptions>({
+    id: 'convert',
     label: 'Convert',
+    title: 'Convert images',
+    intro: 'Turn photos and graphics into WebP or AVIF.',
     verb: { doing: 'Converting', done: 'converted' },
     settings,
     getOptions: options,
