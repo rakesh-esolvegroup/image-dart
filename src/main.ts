@@ -103,7 +103,7 @@ function createApp(): HTMLElement {
     h(
       'header',
       { class: 'masthead' },
-      h('h1', { class: 'wordmark' }, 'Image Tool'),
+      h('h1', { class: 'wordmark' }, 'Image Dart'),
       h(
         'p',
         { class: 'tagline' },

@@ -26,3 +26,8 @@ dist-ssr
 # Cloudflare Wrangler
 .wrangler
 .dev.vars
+
+# Project plans (private working notes)
+PLAN.md
+*.plan.md
+plans/

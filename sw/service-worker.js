@@ -1,4 +1,4 @@
-/* Image Tool service worker: makes the app work offline after the first visit.
+/* Image Dart service worker: makes the app work offline after the first visit.
  * The build fills in VERSION and PRECACHE (see vite.config.ts). */
 const VERSION = '__VERSION__';
 const CACHE = `image-tool-${VERSION}`;

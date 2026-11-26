@@ -1,6 +1,6 @@
 {
-  "name": "Image Tool",
-  "short_name": "Image Tool",
+  "name": "Image Dart",
+  "short_name": "Image Dart",
   "description": "Convert and shrink images to WebP or AVIF on your own computer. Nothing is uploaded.",
   "start_url": "/",
   "scope": "/",

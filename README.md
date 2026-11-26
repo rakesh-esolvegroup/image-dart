@@ -1,4 +1,4 @@
-# Image Tool
+# Image Dart
 
 Convert images to **WebP or AVIF** and **shrink them to a target file size** (for example a 2 MB PNG down to 160 KB), right in the browser.
 
@@ -90,7 +90,7 @@ dev/engine-test.html   dev-only engine test page
 
 ```bash
 npx wrangler login        # once
-npm run deploy            # builds, then uploads dist/ to the "image-tool" Pages project
+npm run deploy            # builds, then uploads dist/ to the "image-dart" Pages project
 ```
 
 If your Cloudflare login has more than one account, Wrangler asks which one. To skip the question, set `CLOUDFLARE_ACCOUNT_ID` first.
@@ -114,3 +114,7 @@ Tested automatically (headless, production build with the real security headers)
 - **`npm install` warns about install scripts for `esbuild`/`workerd`.** npm 11 skips them by default. The app build doesn't need them. If a Wrangler command fails, run `npm approve-scripts esbuild workerd` and reinstall.
 - **Why TypeScript 6, not 7?** `typescript-eslint` doesn't support TS 7 yet. Upgrade once it does.
 - **The app looks stale after a deploy.** The service worker updates in the background. Reload once more, or close and reopen the tab.
+
+## License
+
+[MIT](LICENSE). Free to use, change and share, including for commercial work.
